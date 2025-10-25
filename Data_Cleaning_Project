@@ -1,0 +1,98 @@
+/*
+SQL Data Cleaning Project: Layoffs Data
+Author: Jan Sas
+*/
+
+-- Specify the database to use
+USE world_layoffs;
+
+-- 1. Create a staging table to work on (preserving the raw data)
+CREATE TABLE layoffs_staging 
+LIKE layoffs;
+
+INSERT layoffs_staging 
+SELECT * FROM layoffs;
+
+-- 2. Identify and Remove Duplicates
+-- We create a second staging table to add a row_number() column 
+-- to identify duplicates efficiently.
+
+CREATE TABLE `layoffs_staging2` (
+`company` text,
+`location`text,
+`industry`text,
+`total_laid_off` INT,
+`percentage_laid_off` text,
+`date` text,
+`stage`text,
+`country` text,
+`funds_raised_millions` int,
+`row_num` INT
+);
+
+INSERT INTO `layoffs_staging2`
+SELECT *,
+ROW_NUMBER() OVER (
+	PARTITION BY company, location, industry, total_laid_off, percentage_laid_off, `date`, stage, country, funds_raised_millions
+) AS row_num
+FROM 
+	layoffs_staging;
+
+-- Delete rows where row_num > 1 (these are the duplicates)
+DELETE FROM layoffs_staging2
+WHERE row_num > 1;
+
+
+-- 3. Standardize Data
+
+-- Trim unnecessary characters (e.g., trailing periods)
+UPDATE layoffs_staging2
+SET country = TRIM(TRAILING '.' FROM country)
+WHERE country LIKE 'United States%';
+
+-- Standardize industry names
+UPDATE layoffs_staging2
+SET industry = 'Crypto'
+WHERE industry IN ('Crypto Currency', 'CryptoCurrency');
+
+-- Standardize date format
+UPDATE layoffs_staging2
+SET `date` = STR_TO_DATE(`date`, '%m/%d/%Y');
+
+ALTER TABLE layoffs_staging2
+MODIFY COLUMN `date` DATE;
+
+
+-- 4. Handle Nulls and Blank Values
+
+-- Set blank values ('') to NULLs for consistency
+UPDATE layoffs_staging2
+SET industry = NULL
+WHERE industry = '';
+
+-- Populate NULL industry values by matching with other records from the same company
+UPDATE layoffs_staging2 t1
+JOIN layoffs_staging2 t2
+	ON t1.company = t2.company
+SET t1.industry = t2.industry
+WHERE t1.industry IS NULL
+AND t2.industry IS NOT NULL;
+
+
+-- 5. Remove Unnecessary Data
+
+-- Delete rows where both total_laid_off and percentage_laid_off are NULL
+-- as they provide no value for this specific analysis.
+DELETE FROM layoffs_staging2
+WHERE total_laid_off IS NULL
+AND percentage_laid_off IS NULL;
+
+
+-- 6. Final Cleanup
+
+-- Drop the temporary row_num column
+ALTER TABLE layoffs_staging2
+DROP COLUMN row_num;
+
+-- Final check
+SELECT * FROM layoffs_staging2;
