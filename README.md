@@ -42,4 +42,4 @@ Final Cleanup: The temporary row_num column was dropped from layoffs_staging2.
 
 A dashboard visualizing the cleaned layoffs data to highlight key trends by industry, country, and over time.
 
-![Layoffs Dashboard](dashboard_layoffs.png)
+![Layoffs Dashboard](layoffs.png)
