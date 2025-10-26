@@ -37,3 +37,9 @@ Remove Unnecessary Data:
 Deleted rows where both total_laid_off and percentage_laid_off were NULL, as these records are not relevant for an analysis of layoff events.
 
 Final Cleanup: The temporary row_num column was dropped from layoffs_staging2.
+
+## Power BI Dashboard
+
+A dashboard visualizing the cleaned layoffs data to highlight key trends by industry, country, and over time.
+
+![Layoffs Dashboard](dashboard_layoffs.png)
